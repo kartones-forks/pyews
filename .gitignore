@@ -104,3 +104,7 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+
+# config credentials for the test.py file
+bin/test_config.py

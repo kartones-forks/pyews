@@ -5,18 +5,18 @@ __LOGGER__ = logging.getLogger(__name__)
 
 
 class GetUserSettings(Core):
-    '''Gets user settings based on the provided UserConfiguration object.  
+    '''Gets user settings based on the provided UserConfiguration object.
 
     This class is used as an alternative to Autodiscover since
     GetUserSettings endpoint is a common endpoint across all versions
     of Microsoft Exchange & Office 365.
 
     Examples:
-            
+
     To use any service class you must provide a UserConfiguration object first.
     Like all service classes, you can access formatted properties from the EWS endpoint using the `response` property.
 
-    By passing in a UserConfiguration object we can 
+    By passing in a UserConfiguration object we can
 
     ```python
       userConfig = UserConfiguration(
@@ -30,8 +30,8 @@ class GetUserSettings(Core):
         userconfiguration (UserConfiguration): A UserConfiguration object created using the UserConfiguration class
     '''
 
-    def __init__(self, userconfiguration):
-        super(GetUserSettings, self).__init__(userconfiguration)
+    def __init__(self, userconfiguration, stop_on_error=False):
+        super().__init__(userconfiguration, stop_on_error)
 
     def __parse_response(self, value):
         '''Creates and sets a response object
@@ -39,13 +39,16 @@ class GetUserSettings(Core):
         Args:
             value (str): The raw response from a SOAP request
         '''
-        return_dict = {}
-        for item in value.find_all('UserSetting'):
-            return_dict[self.camel_to_snake(item.Name.string)] = item.Value.string
-        return return_dict
+        return {self.camel_to_snake(item.Name.string): item.Value.string for item in value.find_all("UserSetting")}
 
     def run(self, ews_url, exchange_version):
-        self.raw_xml = self.invoke(self.soap(ews_url, exchange_version))
+        if not exchange_version:
+            __LOGGER__.warning("Empty exchange version, calls like to Ofice365 might fail")
+        else:
+            __LOGGER__.info("Exchange version: {}".format(exchange_version))
+
+        soap_message = self.soap(ews_url, exchange_version)
+        self.raw_xml = self.invoke(soap_message)
         return self.__parse_response(self.raw_xml)
 
     def soap(self, ews_url, exchange_version):
@@ -55,9 +58,9 @@ class GetUserSettings(Core):
             str: Returns the SOAP XML request body
         '''
         return '''<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:a="http://schemas.microsoft.com/exchange/2010/Autodiscover"      
-               xmlns:wsa="http://www.w3.org/2005/08/addressing" 
-               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"      
+<soap:Envelope xmlns:a="http://schemas.microsoft.com/exchange/2010/Autodiscover"
+               xmlns:wsa="http://www.w3.org/2005/08/addressing"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Header>
     <a:RequestedServerVersion>{version}</a:RequestedServerVersion>
@@ -88,6 +91,7 @@ class GetUserSettings(Core):
     </a:GetUserSettingsRequestMessage>
   </soap:Body>
 </soap:Envelope>'''.format(
-    to=ews_url,
-    version=exchange_version, 
-    mailbox=self.userconfiguration.credentials.email_address)
+                           to=ews_url,
+                           version=exchange_version,
+                           mailbox=self.userconfiguration.credentials.email_address
+                          )

@@ -10,15 +10,16 @@ from ..utils.exchangeversion import ExchangeVersion
 __LOGGER__ = logging.getLogger(__name__)
 
 
+# TODO: Why this inherits from Core?
 class UserConfiguration(Core):
     '''UserConfiguration is the main class of pyews.
 
-    It is used by all other ServiceEndpoint parent and child classes.  
+    It is used by all other ServiceEndpoint parent and child classes.
     This class represents how you authorize communication with all other SOAP requests throughout this package.
 
     Examples:
 
-    The UserConfiguration class is the main class used by all services, including the parent class of services called ServiceEndpoint. 
+    The UserConfiguration class is the main class used by all services, including the parent class of services called ServiceEndpoint.
 
     A UserConfiguration object contains detailed information about how to communicate to Exchange Web Services, as well as additional properties
 
@@ -68,7 +69,7 @@ class UserConfiguration(Core):
     Args:
         username (str): An email address or username that you use to authenticate to Exchange Web Services
         password (str): The password that you use to authenticate to Exchange Web Services
-        exchangeVersion (str, optional): Defaults to None. A string representation of the version of Exchange you are connecting to.  
+        exchangeVersion (str, optional): Defaults to None. A string representation of the version of Exchange you are connecting to.
                                             If no version is provided then we will attempt to use Autodiscover to determine this version from all approved versions
         ewsUrl (str, optional): Defaults to None. An alternative Exchange Web Services URL.
         autodiscover (bool, optional): Defaults to True. If you don't want to use Autodiscover then set this to False, but you must provide a ewsUrl.
@@ -85,7 +86,8 @@ class UserConfiguration(Core):
 
     __config_properties = {}
 
-    def __init__(self, username, password, exchange_version=None, ews_url= None, autodiscover=True, impersonation=None):
+    def __init__(self, username, password, exchange_version=None, ews_url=None, autodiscover=True, impersonation=None,
+                 stop_on_error=False):
         self.username = username
         self.password = password
         self.credentials = Credentials(self.username, self.password)
@@ -98,7 +100,7 @@ class UserConfiguration(Core):
         self.autodiscover = autodiscover
 
         if self.autodiscover:
-            self.__config_properties = Autodiscover(self).run()
+            self.__config_properties = Autodiscover(self, stop_on_error).run()
             if self.__config_properties.get('external_ews_url'):
                 self.ews_url = self.__config_properties['external_ews_url']
         else:
