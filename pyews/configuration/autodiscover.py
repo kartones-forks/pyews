@@ -49,9 +49,11 @@ class Autodiscover(Core):
         if not getattr(self.userconfiguration, 'ews_url'):
             self.ews_url = Endpoint(domain=self.userconfiguration.credentials.domain).get()
         self.exchange_versions = self.userconfiguration.exchange_version
-        __LOGGER__.info(self.exchange_versions)
+        __LOGGER__.info("Seen Exchange versions: {versions}".format(versions=", ".join(self.exchange_versions)))
 
     def run(self):
+        # known to not work (but it's ok, will just skip)
+        # Exchange2019 + Office365 = InvalidRequest - The RequestedServerVersion header is missing or invalid
         for version in self.exchange_versions:
             for endpoint in self.ews_url:
                 try:

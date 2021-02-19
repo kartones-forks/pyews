@@ -1,13 +1,13 @@
 import logging
 import requests
-import xmltodict
-import json
 from bs4 import BeautifulSoup
 
 __LOGGER__ = logging.getLogger(__name__)
 
 
 class Core:
+
+    ERROR_CODE_NO_ERROR = "NoError"
 
     SOAP_REQUEST_HEADER = {'content-type': 'text/xml; charset=UTF-8'}
 
@@ -55,10 +55,11 @@ class Core:
             )
             parsed_response = BeautifulSoup(response.content, 'xml')
 
+            # Weak checks as responses can come nested, but lets go with it for now...
             response_code = parsed_response.find('ResponseCode').string if parsed_response.find('ResponseCode') else None  # NOQA: E501
-            error_code = parsed_response.find("ErrorCode").string if parsed_response.find("ErrorCode") else None
+            error_code = parsed_response.find("ErrorCode").string if parsed_response.find("ErrorCode") else "<UNKNOWN>"
 
-            if response_code == 'NoError' and not error_code:
+            if response_code == self.ERROR_CODE_NO_ERROR or error_code == self.ERROR_CODE_NO_ERROR:
                 return parsed_response
 
             __LOGGER__.info("Error '{code}': {message}".format(
@@ -68,14 +69,15 @@ class Core:
         except requests.exceptions.HTTPError as errh:
             __LOGGER__.info("An Http Error occurred attempting to connect to {ep}:".format(ep=endpoint) + repr(errh))
         except requests.exceptions.ConnectionError as errc:
-            __LOGGER__.info("An Error Connecting to the API occurred attempting to connect to {ep}:".format(ep=endpoint) + repr(errc))
+            __LOGGER__.info("An Error Connecting to the API occurred attempting to connect to {ep}:".format(
+                ep=endpoint) + repr(errc)
+            )
         except requests.exceptions.Timeout as errt:
             __LOGGER__.info("A Timeout Error occurred attempting to connect to {ep}:".format(ep=endpoint) + repr(errt))
         except requests.exceptions.RequestException as err:
             __LOGGER__.info("An Unknown Error occurred attempting to connect to {ep}:".format(ep=endpoint) + repr(err))
 
         __LOGGER__.warning('Unable to parse response from {current}'.format(current=self.__class__.__name__))
-
         if self.stop_on_error:
             exit(1)
         else:

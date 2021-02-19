@@ -42,14 +42,12 @@ class GetUserSettings(Core):
         return {self.camel_to_snake(item.Name.string): item.Value.string for item in value.find_all("UserSetting")}
 
     def run(self, ews_url, exchange_version):
-        if not exchange_version:
-            __LOGGER__.warning("Empty exchange version, calls like to Ofice365 might fail")
-        else:
-            __LOGGER__.info("Exchange version: {}".format(exchange_version))
-
         soap_message = self.soap(ews_url, exchange_version)
         self.raw_xml = self.invoke(soap_message)
-        return self.__parse_response(self.raw_xml)
+        if self.raw_xml:
+            return self.__parse_response(self.raw_xml)
+        else:
+            return {}
 
     def soap(self, ews_url, exchange_version):
         '''Creates the SOAP XML message body

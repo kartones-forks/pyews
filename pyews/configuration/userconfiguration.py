@@ -105,10 +105,12 @@ class UserConfiguration(Core):
                 self.ews_url = self.__config_properties['external_ews_url']
         else:
             if self.ews_url:
-                    self.exchange_version = 'Exchange2010'
-                    self.__config_properties = ResolveNames(self).run()
+                self.exchange_version = 'Exchange2010'
+                self.__config_properties = ResolveNames(self).run()
             else:
-                raise IncorrectParameters('If you are not using Autodiscover then you must provide a ews_url and exchange_version.')
+                raise IncorrectParameters(
+                    'If you are not using Autodiscover then you must provide a ews_url and exchange_version.'
+                )
 
     @property
     def impersonation(self):
