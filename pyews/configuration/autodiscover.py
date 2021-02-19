@@ -62,7 +62,9 @@ class Autodiscover(Core):
                     self.userconfiguration.exchange_version = version
                     autodiscover = GetUserSettings(self.userconfiguration, stop_on_error=False).run(endpoint, version)
                 except Exception:
-                    __LOGGER__.info("Exchange version {version} not supported or errored".format(version=version))
+                    __LOGGER__.info(
+                        "Exchange version '{version}' and endpoint '{endpoint}' not supported or errored".format(
+                            version=version, endpoint=endpoint))
                     continue
                 if autodiscover:
                     return autodiscover

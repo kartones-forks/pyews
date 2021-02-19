@@ -8,6 +8,7 @@ __LOGGER__ = logging.getLogger(__name__)
 class Core:
 
     ERROR_CODE_NO_ERROR = "NoError"
+    ERROR_CODE_UNNKNOWN = "<UNKNOWN>"
 
     SOAP_REQUEST_HEADER = {'content-type': 'text/xml; charset=UTF-8'}
 
@@ -26,13 +27,6 @@ class Core:
         else:
             return 'user_dn'
 
-    @staticmethod
-    def _error_message_from(parsed_response):
-        for field in [parsed_response.find("MessageText"), parsed_response.find("ErrorMessage")]:
-            if field and field.string:
-                return field.string
-
-        return ""
 
     def invoke(self, soap_body):
         '''Used to invoke an Autodiscover SOAP request
@@ -57,14 +51,14 @@ class Core:
 
             # Weak checks as responses can come nested, but lets go with it for now...
             response_code = parsed_response.find('ResponseCode').string if parsed_response.find('ResponseCode') else None  # NOQA: E501
-            error_code = parsed_response.find("ErrorCode").string if parsed_response.find("ErrorCode") else "<UNKNOWN>"
+            error_code = self._error_code(parsed_response)
 
             if response_code == self.ERROR_CODE_NO_ERROR or error_code == self.ERROR_CODE_NO_ERROR:
                 return parsed_response
 
             __LOGGER__.info("Error '{code}': {message}".format(
                 code=error_code,
-                message=self._error_message_from(parsed_response)
+                message=self._error_details(parsed_response)
             ))
         except requests.exceptions.HTTPError as errh:
             __LOGGER__.info("An Http Error occurred attempting to connect to {ep}:".format(ep=endpoint) + repr(errh))
@@ -77,8 +71,26 @@ class Core:
         except requests.exceptions.RequestException as err:
             __LOGGER__.info("An Unknown Error occurred attempting to connect to {ep}:".format(ep=endpoint) + repr(err))
 
-        __LOGGER__.warning('Unable to parse response from {current}'.format(current=self.__class__.__name__))
+        # __LOGGER__.info('Unable to parse response from {current}'.format(current=self.__class__.__name__))
         if self.stop_on_error:
             exit(1)
         else:
             return None
+
+    @classmethod
+    def _error_code(cls, parsed_response):
+        # faultcode: Seen as GetSearchableMailboxes responses
+        for field in [parsed_response.find("ErrorCode"), parsed_response.find("faultcode")]:
+            if field and field.string:
+                return field.string
+
+        return cls.ERROR_CODE_UNNKNOWN
+
+    @staticmethod
+    def _error_details(parsed_response):
+        for field in [parsed_response.find("MessageText"), parsed_response.find("ErrorMessage"),
+                      parsed_response.find("faultstring")]:
+            if field and field.string:
+                return field.string
+
+        return ""

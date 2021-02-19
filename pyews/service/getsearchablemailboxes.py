@@ -66,9 +66,7 @@ class GetSearchableMailboxes(Core):
 
     def run(self):
         soap_message = self.soap()
-        __LOGGER__.info("soap message: \n{}".format(soap_message))
         self.raw_xml = self.invoke(soap_message)
-        __LOGGER__.info("raw xml response: \n{}".format(self.raw_xml))
         return self.__parse_response(self.raw_xml)
 
     def soap(self):
